@@ -17,8 +17,8 @@ Vid = np.array([1., 1., 0.])
 pn = 0
 trsig = 0.
 ori = np.array([1., 0., 0.])
-deps = 1e-5
-time1 = np.arange(0, 0.00003, deps)
+deps = 1e-4
+time1 = np.arange(0, 0.0015, deps)
 veps = [0]
 vsigma = [0]
 
@@ -38,19 +38,25 @@ i = 1
 while i < len(time1):
 	ki = (time1[i] + np.matmul(np.matmul(S_,sigm1) - epsm1, ori)) / (np.matmul(np.matmul(S_,ori),ori))
 	eps = ki * np.matmul(S_,ori) - np.matmul(S_,sigm1) + epsm1
-	#print(eps)
+	#eps = epsm1 + np.array([1.e-4, -5.38461e-5, 0.])
+	print(eps)
 	vdeps = eps - epsm1
 	#decomposition
 	vdepstr = 1./3.*(vdeps[0]+vdeps[1])*Vid
 	vdepsdev = vdeps - vdepstr
 	ss = ss + 2.*mu*vdepsdev
-	print(ss)
+	#print(ss)
 	sigmaeq = math.sqrt(3./2.*(ss[0]*ss[0] + ss[1]*ss[1] + 2.*ss[2]*ss[2]))
-	print(sigmaeq)
+	#print(sigmaeq)
 	if (sigmaeq > (sigma0 + H*pn)):
+		print(sigmaeq)
 		pn = (3*mu)/(H+3*mu)*pn + (sigmaeq - sigma0)/(H+3*mu)
 		ss = (sigma0+H*pn)/sigmaeq * ss
+		print(pn)
+		print(ss)
 	trsig = trsig + 3*k*(vdeps[0]+vdeps[1])
+	#print(trsig)
+	#print(3*k*(vdeps[0]+vdeps[1]))
 	sig = 1./3.*trsig*Vid + ss
 	print(sig)
 	veps.append(eps[0])

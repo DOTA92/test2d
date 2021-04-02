@@ -24,13 +24,26 @@ int Homogenization::FillMatData(double contrast)
   H[2] = 0.;
   Si0[2] = 10000;
 
+  //
+   //  THIS WORKS FOR TWO MATERIALS !!!
+ //K[0] = -25.*sqrt(K[1]*K[2]);
+ //mu[0] = -100*sqrt(mu[1]*mu[2]);
+ //K[0] = (K[1]+K[2])/2.;
+ //mu[0] = (mu[1]+mu[2])/2.;
+ Ey[0] = (Ey[1]+Ey[2])/2.;
+ nu[0] = (nu[1]+nu[2])/2.;
+
+
      
   
-  for(i = 1; i<=num_mat; i++)
+  for(i = 0; i<=num_mat; i++)
   {
     K[i] = Ey[i]/(3.*(1.-2.*nu[i]));
     mu[i] = Ey[i]/(2.*(1.+nu[i]));
   }
+
+     cout<<"K0="<<K[0]<<endl;
+   cout<<"Mu0="<<mu[0]<<endl;
  
  
   
@@ -63,15 +76,7 @@ int Homogenization::FillMatData(double contrast)
   
   
  
- //  THIS WORKS FOR TWO MATERIALS !!!
- //K[0] = -25.*sqrt(K[1]*K[2]);
- //mu[0] = -100*sqrt(mu[1]*mu[2]);
- K[0] = K[1];
- mu[0] = mu[1];
- Ey[0] = Ey[1];
- nu[0] = nu[1];
-   cout<<"K0="<<K[0]<<endl;
-   cout<<"Mu0="<<mu[0]<<endl;
+
    
  for(k = 0; k<num_mat; k++)
  {  
@@ -376,15 +381,7 @@ void Homogenization::ComputeGreen()
   
   
 
-if(!(size_x%2)||!(size_y%2))  
-{
-  for(i = 0; i<3; i++)
-  {
-    for(j = 0; j<3; j++)
-    {
-      S0[i][j] = 0;
-    }
-  }
+
   
   /*
   S0[0][0] = (3.*K[0]+mu[0])/(9.*K[0]*mu[0]);
@@ -413,7 +410,7 @@ if(!(size_x%2)||!(size_y%2))
   
   
   
-}  
+
 
 if (!size_x%2)
 {
@@ -591,7 +588,7 @@ void Homogenization::Initialisation()
 void Homogenization::RadicalReturn()
 {
   double complex vdeps[3]; 
-  double trdeps, sigmaeq, trsigma;
+  double trdeps, sigmaeq;
   long int n;
   int i;
   #pragma omp parallel for private(n)
@@ -601,30 +598,33 @@ void Homogenization::RadicalReturn()
       {
         vdeps[i] = epsilon[i][n] - epsilonn[i][n];
       }
+    printf("e0 = %lg e1 = %lg e2 = %lg\n", creal(vdeps[0]), creal(vdeps[1]), creal(vdeps[2]));
     trdeps = creal(vdeps[0] + vdeps[1]);
-    ss[0][n] += 2.*mu[sample[n]]*(vdeps[0]-trdeps/3.);
-    ss[1][n] += 2.*mu[sample[n]]*(vdeps[1]-trdeps/3.);
-    ss[2][n] += 2.*mu[sample[n]]*(vdeps[2]);
+    ss[0][n] = ssn[0][n] + 2.*mu[sample[n]+1]*(vdeps[0]-trdeps/3.);
+    ss[1][n] = ssn[1][n] + 2.*mu[sample[n]+1]*(vdeps[1]-trdeps/3.);
+    ss[2][n] = ssn[2][n] + 2.*mu[sample[n]+1]*(vdeps[2]);
       
     sigmaeq = sqrt(3./2.*cabs(ss[0][n]*conj(ss[0][n])+ss[1][n]*conj(ss[1][n])+2.*ss[2][n]*conj(ss[2][n])));
-    printf("sigmaeq = %lg \n", sigmaeq);
-    if (sigmaeq > (Si0[sample[n]]+H[sample[n]]*pn[sample[n]]))
+    //printf("sigmaeq = %lg \n", sigmaeq);
+    if (sigmaeq > (Si0[sample[n]+1]+H[sample[n]+1]*pln[n]))
     { 
-      printf("get in %lg %ld\n", Si0[sample[n]], n);
-      pn[sample[n]] *= (3.*mu[sample[n]]);
-      pn[sample[n]] += (sigmaeq-Si0[sample[n]]);
-      pn[sample[n]] /= (H[sample[n]]+3.*mu[sample[n]]);
+      printf("get in pn %lg sigmaeq %lg \n", pln[n], sigmaeq);
+      pl[n] = (3.*mu[sample[n]+1])*pln[n] + (sigmaeq-Si0[sample[n]+1]);
+      pl[n] /= (H[sample[n]+1]+3.*mu[sample[n]+1]);
       for(i=0; i<3; i++)
       {
-        ss[i][n] *=  (Si0[sample[n]]+H[sample[n]]*pn[sample[n]])/sigmaeq;
+        ss[i][n] *=  (Si0[sample[n]+1]+H[sample[n]+1]*pl[n])/sigmaeq;
       }
+      printf("get in pn %lg ss %lg %lg %lg\n", pl[n], creal(ss[0][n]), creal(ss[1][n]), creal(ss[2][n]));
     }
-    printf("ss0 = %lg ss1 = %lg ss2 = %lg\n", creal(ss[0][n]), creal(ss[1][n]), creal(ss[2][n]));
-    trsigma = creal(sigma[0][n] + sigma[1][n]) + 3.*K[sample[n]]*trdeps;
-    sigma[0][n] = 1./3.*trsigma + ss[0][n];
-    sigma[1][n] = 1./3.*trsigma + ss[1][n];
+    //printf("ss0 = %lg ss1 = %lg ss2 = %lg\n", creal(ss[0][n]), creal(ss[1][n]), creal(ss[2][n]));
+    trsig[n] = trsign[n] + 3.*K[sample[n]+1]*trdeps;
+    //printf("trsigma = %lg \n", trsig[n]);
+    //printf("2nd term = %lg \n", 3.*K[sample[n]+1]*trdeps);
+    sigma[0][n] = 1./3.*trsig[n] + ss[0][n];
+    sigma[1][n] = 1./3.*trsig[n] + ss[1][n];
     sigma[2][n] = ss[2][n];
-    printf("sig0 = %lg sig1 = %lg sig2 = %lg\n", creal(sigma[0][n]), creal(sigma[1][n]), creal(sigma[2][n]));
+    //printf("sig0 = %lg sig1 = %lg sig2 = %lg\n", creal(sigma[0][n]), creal(sigma[1][n]), creal(sigma[2][n]));
   }
 
 }
@@ -646,7 +646,8 @@ void Homogenization::FFT(double acc)
   //Loop
   num_iter = 0;
 
-  while ((comp_err > acc)&&(eq_err > acc))
+  //while ((comp_err > acc)&&(eq_err > acc))
+  while (num_iter < 1)
   {
     num_iter++;
     printf(" %d comp_err = %lg, eq_err = %lg \n", num_iter, comp_err, eq_err);
@@ -734,6 +735,8 @@ void Homogenization::FFT(double acc)
     }   
        #pragma omp barrier
 
+    
+
     //ecomp - epsilon
    #pragma omp parallel for private(n)
     for(i = 0; i<3; i++)
@@ -744,9 +747,15 @@ void Homogenization::FFT(double acc)
   }
     }
         #pragma omp barrier
-  
+    /*
+  for(n = 0; n<num_vox; n++)
+    {
+      printf("ecomp0 = %lg ecomp1 = %lg ecomp2 = %lg\n", creal(ecomp[0][n]), creal(ecomp[1][n]), creal(ecomp[2][n]));
+    }
+    */
 
    comp_err = comp_error();
+   //printf("Error %lg \n", comp_err);
     
     // d= C0:(ecomp-epsilon)
   #pragma omp parallel for private(n, j)
@@ -794,9 +803,13 @@ void Homogenization::FFT(double acc)
   }
     }
         #pragma omp barrier
+    for(n = 0; n<num_vox; n++)
+    {
+      printf("epsilon0 = %lg epsilon1 = %lg epsilon2 = %lg\n", creal(epsilon[0][n]), creal(epsilon[1][n]), creal(epsilon[2][n]));
+    }
 
     //Step e
-    RadicalReturn();
+    //RadicalReturn();
 
 
 
@@ -939,8 +952,12 @@ void Homogenization::PrintSample()
 void Homogenization::Nonlinearnalysis()
 {
   
-  int i;
+  int i, num_step;
   long int n;
+
+  FILE *fpsigma, *fpeps;
+  fpsigma = fopen("sigma.txt", "w");
+  fpeps = fopen("eps.txt", "w");
 
   // Initialisation
   time1 = 0.;
@@ -952,19 +969,23 @@ void Homogenization::Nonlinearnalysis()
   for(i=0; i<3; i++)
   {
     Ei[i] = 0.;
+    Ei1[i] = 0.;
     Sig[i] = 0.;
     for(n=0; n<num_vox; n++)
     {
       epsilonn1[i][n] = 0.;
       epsilonn[i][n] = 0.;
-      ss[i][n] = 0.;
-      pn[n] = 0.;
+      ssn[i][n] = 0.;
+      trsign[n] = 0.;
+      pln[n] = 0.;
     }
   }
   printf("E= %lg %lg %lg \n", Ei[0], Ei[1], Ei[2]);
   printf("Sigma= %lg %lg %lg \n", Sig[0], Sig[1], Sig[2]);
+  fprintf(fpeps,"%lg %lg %lg \n", Ei1[0], Ei1[1], Ei1[2]);
+  fprintf(fpsigma,"%lg %lg %lg \n", Sig[0], Sig[1], Sig[2]);
   
-  double deps = 1e-5; 
+  double deps = 1e-4; 
   ImposingMacroStressDirection(deps);
 
   printf("E= %lg %lg %lg \n", Ei[0], Ei[1], Ei[2]);
@@ -995,10 +1016,77 @@ void Homogenization::Nonlinearnalysis()
     eps += epsilon[i][n];
   }
   Sig[i] = creal(sig/num_vox);
-  printf("eps = %lg", creal(eps));
+  Ei1[i] = creal(eps/num_vox);
+  //printf("eps = %lg", creal(eps/num_vox));
   
   }
   printf("Sigma= %lg %lg %lg \n", Sig[0], Sig[1], Sig[2]);
+  fprintf(fpeps,"%lg %lg %lg \n", Ei1[0], Ei1[1], Ei1[2]);
+  fprintf(fpsigma,"%lg %lg %lg \n", Sig[0], Sig[1], Sig[2]);
+
+  num_step = 1;
+  while (num_step < 15)
+  {
+    num_step++; 
+    // Initialisation
+    #pragma omp parallel for private(n)
+    for(i=0; i<3; i++)
+    {
+    for(n=0; n<num_vox; n++)
+    {
+      epsilonn1[i][n] = epsilonn[i][n];
+      epsilonn[i][n] = epsilon[i][n];
+      ssn[i][n] = ss[i][n];
+      trsign[n] = trsig[n];
+      pln[n] = pl[n];
+    }
+    }
+
+    // Compute strain macro
+    deps = 1e-4; 
+    ImposingMacroStressDirection(deps);
+
+    printf("E= %lg %lg %lg \n", Ei[0], Ei[1], Ei[2]);
+
+    //Initialisation for FFT
+    //Initialisation();
+    #pragma omp parallel for private(n)
+    for(i=0; i<3; i++)
+     {
+    for(n=0; n<num_vox; n++)
+    {
+      epsilon[i][n] = Ei[i];
+      //printf("epsilon = %lg %lg %d\n", creal(epsilon[i][n]), Ei[i], i);
+    }
+    }
+
+    // FFT
+    FFT(1e-4);
+
+    for(i = 0; i<3; i++)
+    {
+    sig = 0.;
+    eps = 0.;
+    for(n = 0; n<num_vox; n++)
+    {
+    sig += sigma[i][n];
+    eps += epsilon[i][n];
+    }
+    Sig[i] = creal(sig/num_vox);
+    Ei1[i] = creal(eps/num_vox);
+    //printf("eps = %lg", creal(eps/num_vox));
+  
+    }
+    printf("Sigma %d = %lg %lg %lg \n", num_step, Sig[0], Sig[1], Sig[2]);
+
+    
+    
+    fprintf(fpeps,"%lg %lg %lg \n", Ei1[0], Ei1[1], Ei1[2]);
+    fprintf(fpsigma,"%lg %lg %lg \n", Sig[0], Sig[1], Sig[2]);
+
+  }
+  fclose(fpeps);
+  fclose(fpsigma);
 
 }
 

@@ -24,6 +24,7 @@ Homogenization::Homogenization(int _size_x, int _size_y, double _dx, double _dy,
   nu = (double *) malloc((num_mat + 1)*sizeof(double));
   H = (double *) malloc((num_mat + 1)*sizeof(double));
   Si0 = (double *) malloc((num_mat + 1)*sizeof(double));
+
   
   
   Ci = (double *) malloc((num_mat)*9*sizeof(double));
@@ -44,7 +45,10 @@ Homogenization::Homogenization(int _size_x, int _size_y, double _dx, double _dy,
   }
 
   sample = (int *) malloc((num_vox)*sizeof(int));
-  pn = (double *) malloc((num_vox)*sizeof(double));
+  pl = (double *) malloc((num_vox)*sizeof(double));
+  pln = (double *) malloc((num_vox)*sizeof(double));
+  trsig = (double *) malloc((num_vox)*sizeof(double));
+  trsign = (double *) malloc((num_vox)*sizeof(double));
   
  
   for(i = 0; i<3; i++)
@@ -54,6 +58,8 @@ Homogenization::Homogenization(int _size_x, int _size_y, double _dx, double _dy,
      epsilonn1[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
      sigma[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
      ss[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
+     sigman[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
+     ssn[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
      sigma_f[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
      tau[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
      ecomp[i] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num_vox);
@@ -83,6 +89,10 @@ Homogenization::~Homogenization()
   free(mu);
   free(Ci);
   free(Si);
+  free(Ey);
+  free(nu);
+  free(Si0);
+  free(H);
 
   for(i = 0; i<2; i++)
   {
@@ -96,6 +106,10 @@ Homogenization::~Homogenization()
   }
 
   free(sample);
+  free(pl);
+  free(pln);
+  free(trsig);
+  free(trsign);
   
   
   // fftw_destroy_plan(p);
@@ -108,6 +122,8 @@ Homogenization::~Homogenization()
      fftw_free(epsilonn1[i]);
      fftw_free(sigma[i]);
      fftw_free(ss[i]);
+     fftw_free(sigman[i]);
+     fftw_free(ssn[i]);
      fftw_free(sigma_f[i]);
      fftw_free(tau[i]);
      fftw_free(ecomp[i]);

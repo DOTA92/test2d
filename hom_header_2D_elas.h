@@ -33,14 +33,14 @@ class Homogenization{
      
      double complex *Xi[2]; //technical things
      
-     double *K, *mu, *Ey, *nu, *H, *Si0, *pn;  //length num_mat+1
+     double *K, *mu, *Ey, *nu, *H, *Si0, *pl, *pln, *trsig, *trsign;  //length num_mat+1
      
      double C_hom[3][3], C0[3][3], S0[3][3];
      double *Ci, *Si; 
      int *sample;
      
      double Sig[3], Ei[3], Ei1[3], time1, ki, Direc[3];
-     fftw_complex *sigma[3], *ss[3], *epsilon[3], *epsilonn[3], *epsilonn1[3], *sigma_f[3], *tau[3], *ecomp[3], *d[3], *f[3];  //All the FFT source/target
+     fftw_complex *sigma[3], *ss[3], *sigman[3], *ssn[3], *epsilon[3], *epsilonn[3], *epsilonn1[3], *sigma_f[3], *tau[3], *ecomp[3], *d[3], *f[3];  //All the FFT source/target
      
      
      fftw_plan p_sigma_forward[3], p_ecomp_backward[3], p_tau_forward[3];     //All the FFT plans
